@@ -18,6 +18,8 @@ typedef unsigned char BYTE;
 typedef unsigned short int WORD;
 typedef unsigned int DWORD;
 
+
+
 #pragma pack(push, 1)
 
 /** Superbloco */
