@@ -5,6 +5,8 @@
 #include "../include/t2fs.h"
 #include "../include/bitmap2.h"
 
+op_file files_opened[20];
+
 int identify2 (char *name, int size) {
 	return 0;
 }
@@ -139,26 +141,12 @@ FILE2 create2 (char *filename) {
 
 					files_opened[l].sectorNr = blocksOffset+currentinode[0]+i;
 					files_opened[l].positionInSector = j;
-					return j;
-
-
+					return l;
 				}
 			}
 		}
-
-
 	}
-	// read first record
-	read_sector(blocksOffset+inodeRoot[0],sector);
-	BYTE record[64];
-	memcpy(record,sector,64);
-	char s[32];
-	memcpy(s,record+1,31);
-	s[31] = '\0';
-
-
-
-	return 0;
+	return -1;
 }
 
 int delete2 (char *filename) {
@@ -166,7 +154,92 @@ int delete2 (char *filename) {
 }
 
 FILE2 open2 (char *filename) {
-	return 0;
+	char * getNextName(char *filename, int *idx) {
+		char *curfile = malloc(32);
+		int j=0;
+		if (filename[*idx] == '/') (*idx)++;
+
+		while (filename[j] != '\0' && filename[*idx] != '/') {
+			curfile[j] = filename[*idx];
+			(*idx)++;
+			j++;
+			curfile[j] = '\0';
+		}
+		return curfile;
+	}
+
+	// read superblock
+	unsigned char sector[SECTOR_SIZE];
+	read_sector(0,sector);
+	
+	int superblockSize =  sector[6] + (sector[7]<<8);
+	int bitmapBlocksSize =  sector[8] + (sector[9]<<8);
+	int bitmapInodesSize =  sector[10] + (sector[11]<<8);
+	int inodesSize = sector[12] + (sector[13]<<8);
+
+	int inodesOffset = superblockSize+bitmapBlocksSize+bitmapInodesSize;
+	int blocksOffset = superblockSize+bitmapBlocksSize+bitmapInodesSize+inodesSize;
+
+	int blockSize = sector[14] + (sector[15]<<8);
+
+	int currentinode[4];
+	int inodeNr = 0;
+	// read root inode
+	read_sector(inodesOffset,sector);
+	int inodeRoot[4];
+	memcpy(inodeRoot,sector,sizeof(struct t2fs_inode));
+	//printf("dataptr1: %i\n dataptr2: %i\n singleindr: %i\n doubleindir: %i",inodeRoot[0],inodeRoot[1],inodeRoot[2],inodeRoot[3]);
+	// search root directory for next file
+	int filenameIdx = 0;
+	char *nextFileName;
+	nextFileName = getNextName(filename, &filenameIdx);
+
+	memcpy(currentinode,inodeRoot,sizeof(struct t2fs_inode));
+	if (currentinode[0] != INVALID_PTR) { // first direct pointer from inode is ok
+		int i=0;
+		for (i=0;i<blockSize;i++) { // iterate through sectors in the block
+			read_sector(blocksOffset+currentinode[0]+i,sector);
+
+			int j=0;
+			BYTE record[64];
+			for (j=0;j<4;j++) { // iterate through records in sector
+				memcpy(record,sector+j*64,64);
+				char possibleNextFileName[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+				int z=0;
+				strcpy(possibleNextFileName,record+1);
+				for (z=0;z<32;z++) printf("%c",possibleNextFileName[z]);
+				if (strcmp(possibleNextFileName,nextFileName) == 0) { // found file
+					if (record[0] == 1) { // it is a file
+						// create record in current directory
+						record[0] = 0x01;
+						memcpy(record+1,nextFileName,32);
+						int newblocksfilesize = 0;
+						int newbytesfilesize = 0;
+
+						memcpy(record+33,&newblocksfilesize,4);
+						memcpy(record+37,&newbytesfilesize,4);
+						memcpy(record+41,&inodeNr,4);
+
+						// set as an opened file
+						int l=0;
+						while (files_opened[l].is_valid) l++;
+						files_opened[l].is_valid = 1;
+						files_opened[l].current_pointer = 0;
+
+
+						(files_opened[l].record).TypeVal = record[0];
+						strcpy((files_opened[l].record).name,record+1);
+
+						files_opened[l].sectorNr = blocksOffset+currentinode[0]+i;
+						files_opened[l].positionInSector = j;
+						return l;
+					}
+					else return -1;
+				}
+			}
+		}
+	}
+	return -1;
 }
 
 int close2 (FILE2 handle) {

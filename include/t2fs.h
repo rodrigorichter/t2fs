@@ -64,7 +64,7 @@ typedef struct opened_file {
 	int positionInSector;
 } op_file;
 
-static op_file files_opened[20];
+extern op_file files_opened[20];
 
 #pragma pack(pop)
 
