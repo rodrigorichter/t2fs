@@ -10,8 +10,17 @@ int main() {
 	unsigned char i[256];
 	read_sector(0, i);
 	printf("%i",i[12]);
+
+	op_file f;
+	struct t2fs_record r;
+
+
+	f.current_pointer= 1;
+	f.record= r;
+	f.sectorNr= 2;
+	f.positionInSector= 3;
+
 	create2("/hehe");
-	files_opened[0] = 1;
-	printf("file opened: %i",files_opened[0]);
+	printf("ele: %i",files_opened[0].is_valid);
 	return 0;
 }

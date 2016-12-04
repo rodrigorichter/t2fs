@@ -18,8 +18,6 @@ typedef unsigned char BYTE;
 typedef unsigned short int WORD;
 typedef unsigned int DWORD;
 
-static FILE2 files_opened[20];
-
 #pragma pack(push, 1)
 
 /** Superbloco */
@@ -57,6 +55,16 @@ typedef struct {
     BYTE    fileType;                   /* Tipo do arquivo: regular (0x01) ou diretório (0x02) */
     DWORD   fileSize;                   /* Numero de bytes do arquivo                          */
 } DIRENT2;
+
+typedef struct opened_file {
+	int is_valid;
+	int current_pointer;
+	struct t2fs_record record;
+	int sectorNr;
+	int positionInSector;
+} op_file;
+
+static op_file files_opened[20];
 
 #pragma pack(pop)
 
