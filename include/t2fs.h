@@ -18,7 +18,7 @@ typedef unsigned char BYTE;
 typedef unsigned short int WORD;
 typedef unsigned int DWORD;
 
-
+static FILE2 files_opened[20];
 
 #pragma pack(push, 1)
 

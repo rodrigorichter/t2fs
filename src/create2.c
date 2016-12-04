@@ -80,7 +80,9 @@ FILE2 create2 (char *filename) {
 			BYTE record[64];
 			for (j=0;j<4;j++) { // iterate through records in sector
 				memcpy(record,sector+j*64,64);
+				printf("%i",record[0]);
 
+	//printf("%s\n",nextFileName);
 				if (record[0] != 1 && record[0] != 2) { // found an available record
 					// create inode
 					int amountinodes = inodesSize*SECTOR_SIZE/sizeof(struct t2fs_inode);
@@ -134,7 +136,6 @@ FILE2 create2 (char *filename) {
 	memcpy(s,record+1,31);
 	s[31] = '\0';
 
-	printf("%s",nextFileName);
 
 
 	return 0;
