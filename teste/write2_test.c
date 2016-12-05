@@ -11,6 +11,7 @@ int main() {
 	BYTE bufferToRead[40];
 	int arqHandle = open2("/arq");
 	write2(arqHandle,bufferToWrite,40);
+	seek2(arqHandle,-40);
 	int amountOfBytes = read2(arqHandle,bufferToRead,40);
 	// return 0;
 	printf("bytes: %i\n", amountOfBytes);

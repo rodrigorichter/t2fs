@@ -64,7 +64,16 @@ typedef struct opened_file {
 	int positionInSector;
 } op_file;
 
+typedef struct opened_directory {
+	int is_valid;
+	int current_entry;
+	struct t2fs_record record;
+	int sectorNr;
+	int positionInSector;
+} op_dir;
+
 extern op_file files_opened[20];
+extern op_dir dirs_opened[20];
 
 #pragma pack(pop)
 
