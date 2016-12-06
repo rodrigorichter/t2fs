@@ -328,7 +328,151 @@ FILE2 open2 (char *filename) {
 				}
 			}
 		}
+		if (currentinode[1] != INVALID_PTR) { // second direct pointer from inode is ok
+			int i=0;
+			for (i=0;i<blockSize;i++) { // iterate through sectors in the block
+				read_sector(blocksOffset+currentinode[0]*blockSize+i,sector);
+				int j=0;
+				BYTE record[64];
+				for (j=0;j<4;j++) { // iterate through records in sector
+					memcpy(record,sector+j*64,64);
+					char possibleNextFileName[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+					int z=0;
+					memcpy(possibleNextFileName,record+1,32);
+					//for (z=0;z<32;z++) printf("%c",possibleNextFileName[z]);
+					if (strcmp(possibleNextFileName,nextFileName) == 0) { // found file
+						if (record[0] == 1) { // it is a file
+
+							// set as an opened file
+							int l=0;
+							while (files_opened[l].is_valid) l++;
+							files_opened[l].is_valid = 1;
+							files_opened[l].current_pointer = 0;
+
+							(files_opened[l].record).TypeVal = record[0];
+							memcpy((files_opened[l].record).name,record+1,32);
+							(files_opened[l].record).bytesFileSize = record[37]+(record[38]<<8)+(record[39]<<16)+(record[40]<<24);
+							(files_opened[l].record).inodeNumber = record[41]+(record[42]<<8)+(record[43]<<16)+(record[44]<<24);
+
+							files_opened[l].sectorNr = blocksOffset+currentinode[0]*blockSize+i;
+							files_opened[l].positionInSector = j;
+							return l;
+						}
+						else return -1;
+					}
+				}
+			}
+			if (currentinode[2] != INVALID_PTR) { // indirect pointer is ok
+				unsigned char buffer[SECTOR_SIZE];
+				int i=0;
+				for (i=0;i<blockSize;i++) { // iterate through sectors in the block
+					read_sector(blocksOffset+currentinode[2]*blockSize+i,sector);
+
+					int h=0;
+					for (h=0;h<SECTOR_SIZE;h+=4) { // iterate through pointers in sector
+						int indPointer = sector[h]+(sector[h+1]<<8)+(sector[h+2]<<16)+(sector[h+3]<<24);
+						if (indPointer != INVALID_PTR) {
+							int j=0;
+							for (j=0;j<blockSize;j++) { // iterate through sectors in the block pointed by the indirect pointer
+								read_sector(blocksOffset+indPointer*blockSize+j,buffer);
+								int k=0;
+								BYTE record[64];
+								for (k=0;k<4;k++) { // iterate through records in sector
+									memcpy(record,buffer+k*64,64);
+									char possibleNextFileName[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+									int z=0;
+									memcpy(possibleNextFileName,record+1,32);
+									//for (z=0;z<32;z++) printf("%c",possibleNextFileName[z]);
+									if (strcmp(possibleNextFileName,nextFileName) == 0) { // found file
+										if (record[0] == 1) { // it is a file
+
+											// set as an opened file
+											int l=0;
+											while (files_opened[l].is_valid) l++;
+											files_opened[l].is_valid = 1;
+											files_opened[l].current_pointer = 0;
+
+											(files_opened[l].record).TypeVal = record[0];
+											memcpy((files_opened[l].record).name,record+1,32);
+											(files_opened[l].record).bytesFileSize = record[37]+(record[38]<<8)+(record[39]<<16)+(record[40]<<24);
+											(files_opened[l].record).inodeNumber = record[41]+(record[42]<<8)+(record[43]<<16)+(record[44]<<24);
+
+											files_opened[l].sectorNr = blocksOffset+currentinode[0]*blockSize+i;
+											files_opened[l].positionInSector = j;
+											return l;
+										}
+										else return -1;
+									}
+								}
+							}
+						}
+					}
+				}
+				if (currentinode[3] != INVALID_PTR) { // double indirect pointer is ok
+					unsigned char buffer[SECTOR_SIZE];
+					int i=0;
+					for (i=0;i<blockSize;i++) { // iterate through sectors in the block
+						read_sector(blocksOffset+currentinode[2]*blockSize+i,sector);
+
+						int h=0;
+						for (h=0;h<SECTOR_SIZE;h+=4) { // iterate through pointers in sector
+							int indPointer = sector[h]+(sector[h+1]<<8)+(sector[h+2]<<16)+(sector[h+3]<<24);
+							if (indPointer != INVALID_PTR) {
+								int j=0;
+								for (j=0;j<blockSize;j++) { // iterate through sectors in the block pointed by the indirect pointer
+									read_sector(blocksOffset+indPointer*blockSize+j,buffer);
+
+									int m=0;
+									for (m=0;m<SECTOR_SIZE;m+=4) { // iterate through pointers in sector
+										int secondindPointer = sector[h]+(sector[h+1]<<8)+(sector[h+2]<<16)+(sector[h+3]<<24);
+
+										if (secondindPointer != INVALID_PTR) {
+											unsigned char bufferInd[SECTOR_SIZE];
+											int n=0;
+											for (n=0;n<blockSize;n++) { // iterate through sectors in the block pointed by the second indirect pointer
+												read_sector(blocksOffset+secondindPointer*blockSize+n,bufferInd);
+
+												int k=0;
+												BYTE record[64];
+												for (k=0;k<4;k++) { // iterate through records in sector
+													memcpy(record,bufferInd+k*64,64);
+													char possibleNextFileName[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+													int z=0;
+													memcpy(possibleNextFileName,record+1,32);
+													//for (z=0;z<32;z++) printf("%c",possibleNextFileName[z]);
+													if (strcmp(possibleNextFileName,nextFileName) == 0) { // found file
+														if (record[0] == 1) { // it is a file
+
+															// set as an opened file
+															int l=0;
+															while (files_opened[l].is_valid) l++;
+															files_opened[l].is_valid = 1;
+															files_opened[l].current_pointer = 0;
+
+															(files_opened[l].record).TypeVal = record[0];
+															memcpy((files_opened[l].record).name,record+1,32);
+															(files_opened[l].record).bytesFileSize = record[37]+(record[38]<<8)+(record[39]<<16)+(record[40]<<24);
+															(files_opened[l].record).inodeNumber = record[41]+(record[42]<<8)+(record[43]<<16)+(record[44]<<24);
+
+															files_opened[l].sectorNr = blocksOffset+currentinode[0]*blockSize+i;
+															files_opened[l].positionInSector = j;
+															return l;
+														}
+														else return -1;
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 	}
+
 	return -1;
 }
 
@@ -362,8 +506,6 @@ int read2 (FILE2 handle, char *buffer, int size) {
 	
 	sectorOffset+=(int)((float)(files_opened[handle].current_pointer)/SECTOR_SIZE);
 
-	//printf("pointer: %i",(files_opened[handle].current_pointer));
-	//printf("sectorOffset:%i",sectorOffset);
 	memcpy(currentinode,sector+sectorOffset*sizeof(struct t2fs_inode),sizeof(struct t2fs_inode));
 	int i=0;
 	if (currentinode[0] != INVALID_PTR) {
@@ -380,6 +522,103 @@ int read2 (FILE2 handle, char *buffer, int size) {
 				}
 			}
 			j=0;
+		}
+		if (currentinode[1] != INVALID_PTR) {
+			j=(((float)(files_opened[handle].current_pointer)/SECTOR_SIZE)-(int)((float)(files_opened[handle].current_pointer)/SECTOR_SIZE))*SECTOR_SIZE;
+			for (i=0;i<blockSize;i++) { // iterate through sectors in the block
+				read_sector(blocksOffset+currentinode[0]*blockSize+i,sector);
+				while (j<SECTOR_SIZE && bytesLeft > 0) { // copy to buffer one byte at a time from the file
+					memcpy(buffer+size-bytesLeft,sector+j,1);
+					bytesLeft--;
+					j++;
+					if (bytesLeft == 0) {
+						(files_opened[handle].current_pointer)+=size;
+						return size;
+					}
+				}
+				j=0;
+			}
+			if (currentinode[2] != INVALID_PTR) {
+				unsigned char indSector[SECTOR_SIZE];
+				for (i=0;i<blockSize;i++) { // iterate through sectors in the block
+					read_sector(blocksOffset+currentinode[0]*blockSize+i,sector);
+
+					int h=0;
+					for (h=0;h<SECTOR_SIZE;h+=4) { // iterate through pointers in sector
+						int indPointer = sector[h]+(sector[h+1]<<8)+(sector[h+2]<<16)+(sector[h+3]<<24);
+
+						if (indPointer != INVALID_PTR) {
+							int j=0;
+							int k=(((float)(files_opened[handle].current_pointer)/SECTOR_SIZE)-(int)((float)(files_opened[handle].current_pointer)/SECTOR_SIZE))*SECTOR_SIZE;
+							
+							for (j=0;j<blockSize;j++) { // iterate through sectors in the block pointed by the indirect pointer
+								read_sector(blocksOffset+indPointer*blockSize+j,indSector);
+
+								while (k<SECTOR_SIZE && bytesLeft > 0) { // copy to buffer one byte at a time from the file
+									memcpy(buffer+size-bytesLeft,indSector+k,1);
+									bytesLeft--;
+									k++;
+
+									if (bytesLeft == 0) {
+										(files_opened[handle].current_pointer)+=size;
+										return size;
+									}
+								}
+								k=0;
+							}
+						}
+					}
+				}
+				if (currentinode[3] != INVALID_PTR) {
+					unsigned char indSector[SECTOR_SIZE];
+					for (i=0;i<blockSize;i++) { // iterate through sectors in the block
+						read_sector(blocksOffset+currentinode[0]*blockSize+i,sector);
+
+						int h=0;
+						for (h=0;h<SECTOR_SIZE;h+=4) { // iterate through pointers in sector
+							int indPointer = sector[h]+(sector[h+1]<<8)+(sector[h+2]<<16)+(sector[h+3]<<24);
+
+							if (indPointer != INVALID_PTR) {
+								int j=0;
+								int k=(((float)(files_opened[handle].current_pointer)/SECTOR_SIZE)-(int)((float)(files_opened[handle].current_pointer)/SECTOR_SIZE))*SECTOR_SIZE;
+								
+									unsigned char secondindSector[SECTOR_SIZE];
+								for (j=0;j<blockSize;j++) { // iterate through sectors in the block pointed by the indirect pointer
+									read_sector(blocksOffset+indPointer*blockSize+j,secondindSector);
+
+									int h=0;
+									for (h=0;h<SECTOR_SIZE;h+=4) { // iterate through pointers in sector
+										int secondindPointer = sector[h]+(sector[h+1]<<8)+(sector[h+2]<<16)+(sector[h+3]<<24);
+
+										if (secondindPointer != INVALID_PTR) {
+											int j=0;
+											int k=(((float)(files_opened[handle].current_pointer)/SECTOR_SIZE)-(int)((float)(files_opened[handle].current_pointer)/SECTOR_SIZE))*SECTOR_SIZE;
+											
+											for (j=0;j<blockSize;j++) { // iterate through sectors in the block pointed by the indirect pointer
+												read_sector(blocksOffset+secondindPointer*blockSize+j,secondindSector);
+
+
+
+												while (k<SECTOR_SIZE && bytesLeft > 0) { // copy to buffer one byte at a time from the file
+													memcpy(buffer+size-bytesLeft,secondindSector+k,1);
+													bytesLeft--;
+													k++;
+
+													if (bytesLeft == 0) {
+														(files_opened[handle].current_pointer)+=size;
+														return size;
+													}
+												}
+												k=0;
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 		(files_opened[handle].current_pointer)+=(size-bytesLeft);
 		return size-bytesLeft;
@@ -432,8 +671,123 @@ int write2 (FILE2 handle, char *buffer, int size) {
 			write_sector(blocksOffset+currentinode[0]*blockSize+i,sector);
 			(files_opened[handle].current_pointer)+=SECTOR_SIZE;
 		}
-		return -1;
+
+
+		if (currentinode[1] != INVALID_PTR) {
+			j=(((float)(files_opened[handle].current_pointer)/SECTOR_SIZE)-(int)((float)(files_opened[handle].current_pointer)/SECTOR_SIZE))*SECTOR_SIZE;
+			for (i=0;i<blockSize;i++) { // iterate through sectors in the block
+				read_sector(blocksOffset+currentinode[0]*blockSize+i,sector);
+				while (j<256 && bytesLeft > 0) { // copy from buffer one byte at a time from the file
+					memcpy(sector+j,buffer+size-bytesLeft,1);
+					bytesLeft--;
+					j++;
+					if (bytesLeft == 0) {
+						(files_opened[handle].current_pointer)+=size;
+						write_sector(blocksOffset+currentinode[0]*blockSize+i,sector);
+						return size;
+					}
+				}
+				write_sector(blocksOffset+currentinode[0]*blockSize+i,sector);
+				(files_opened[handle].current_pointer)+=SECTOR_SIZE;
+			}
+			if (currentinode[2] != INVALID_PTR) {
+				unsigned char indSector[SECTOR_SIZE];
+				for (i=0;i<blockSize;i++) { // iterate through sectors in the block
+					read_sector(blocksOffset+currentinode[0]*blockSize+i,sector);
+
+					int h=0;
+					for (h=0;h<SECTOR_SIZE;h+=4) { // iterate through pointers in sector
+						int indPointer = sector[h]+(sector[h+1]<<8)+(sector[h+2]<<16)+(sector[h+3]<<24);
+
+						if (indPointer != INVALID_PTR) {
+							int j=0;
+							int k=(((float)(files_opened[handle].current_pointer)/SECTOR_SIZE)-(int)((float)(files_opened[handle].current_pointer)/SECTOR_SIZE))*SECTOR_SIZE;
+							
+							for (j=0;j<blockSize;j++) { // iterate through sectors in the block pointed by the indirect pointer
+								read_sector(blocksOffset+indPointer*blockSize+j,indSector);
+
+								while (j<256 && bytesLeft > 0) { // copy from buffer one byte at a time from the file
+									memcpy(indSector+j,buffer+size-bytesLeft,1);
+									bytesLeft--;
+									j++;
+									if (bytesLeft == 0) {
+										(files_opened[handle].current_pointer)+=size;
+										write_sector(blocksOffset+indPointer*blockSize+i,indSector);
+										return size;
+									}
+								}
+								write_sector(blocksOffset+indPointer*blockSize+i,indSector);
+								(files_opened[handle].current_pointer)+=SECTOR_SIZE;
+							}
+						}
+					}
+				}
+				if (currentinode[3] != INVALID_PTR) {
+					unsigned char indSector[SECTOR_SIZE];
+					for (i=0;i<blockSize;i++) { // iterate through sectors in the block
+						read_sector(blocksOffset+currentinode[0]*blockSize+i,sector);
+
+						int h=0;
+						for (h=0;h<SECTOR_SIZE;h+=4) { // iterate through pointers in sector
+							int indPointer = sector[h]+(sector[h+1]<<8)+(sector[h+2]<<16)+(sector[h+3]<<24);
+
+							if (indPointer != INVALID_PTR) {
+								int j=0;
+								int k=(((float)(files_opened[handle].current_pointer)/SECTOR_SIZE)-(int)((float)(files_opened[handle].current_pointer)/SECTOR_SIZE))*SECTOR_SIZE;
+								
+									unsigned char secondindSector[SECTOR_SIZE];
+								for (j=0;j<blockSize;j++) { // iterate through sectors in the block pointed by the indirect pointer
+									read_sector(blocksOffset+indPointer*blockSize+j,secondindSector);
+
+									int h=0;
+									for (h=0;h<SECTOR_SIZE;h+=4) { // iterate through pointers in sector
+										int secondindPointer = sector[h]+(sector[h+1]<<8)+(sector[h+2]<<16)+(sector[h+3]<<24);
+
+										if (secondindPointer != INVALID_PTR) {
+											int j=0;
+											int k=(((float)(files_opened[handle].current_pointer)/SECTOR_SIZE)-(int)((float)(files_opened[handle].current_pointer)/SECTOR_SIZE))*SECTOR_SIZE;
+											
+											for (j=0;j<blockSize;j++) { // iterate through sectors in the block pointed by the indirect pointer
+												read_sector(blocksOffset+secondindPointer*blockSize+j,secondindSector);
+
+												while (j<256 && bytesLeft > 0) { // copy from buffer one byte at a time from the file
+													memcpy(secondindSector+j,buffer+size-bytesLeft,1);
+													bytesLeft--;
+													j++;
+													if (bytesLeft == 0) {
+														(files_opened[handle].current_pointer)+=size;
+														write_sector(blocksOffset+secondindPointer*blockSize+i,secondindSector);
+														return size;
+													}
+												}
+												write_sector(blocksOffset+secondindPointer*blockSize+i,secondindSector);
+												(files_opened[handle].current_pointer)+=SECTOR_SIZE;
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		(files_opened[handle].current_pointer)+=(size-bytesLeft);
+		return size-bytesLeft;
 	}
+
+
+
+
+
+
+
+
+
+
+
+
+
 	return -1;
 }
 
