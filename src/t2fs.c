@@ -462,6 +462,7 @@ int mkdir2 (char *filename) {
 		if (filename[*idx] == '/') (*idx)++;
 
 		while (filename[j] != '\0' && filename[*idx] != '/') {
+			if (!(filename[*idx] == '.' || filename[*idx] == '\0' || (filename[*idx] >= '0' && filename[*idx] <= '9') || (filename[*idx] >= 'a' && filename[*idx] <= 'z') || (filename[*idx] >= 'A' && filename[*idx] <= 'Z'))) return -1;
 			curfile[j] = filename[*idx];
 			(*idx)++;
 			j++;
@@ -511,7 +512,7 @@ int mkdir2 (char *filename) {
 				int z=0;
 
 				strcpy(possibleNextFileName,record+1);
-				for (z=0;z<32;z++) printf("%c",possibleNextFileName[z]);
+				// for (z=0;z<32;z++) printf("%c",possibleNextFileName[z]);
 				if (strcmp(possibleNextFileName,nextFileName) == 0) { // found file
 					if (record[0] == 2) { // it is a directory
 						if (filename[filenameIdx] == '\0') return -1; // directory already exists

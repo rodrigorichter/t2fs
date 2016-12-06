@@ -8,7 +8,7 @@
 
 int main() {
 	printf("Trying to create directory named /pasta25\n");
-	int a = create2("/pasta25");
+	int a = mkdir2("/pasta25");
 	if (a==-1) {
 		printf("Could not create directory\n");
 		return 0;
@@ -17,7 +17,7 @@ int main() {
 	puts((files_opened[a].record).name);
 
 	printf("Trying to create directory named /pasta@$\n");
-	a = create2("/pasta@$");
+	a = mkdir2("/pasta@$");
 	if (a==-1) {
 		printf("Could not create directory\n");
 		return 0;
