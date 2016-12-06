@@ -14,5 +14,26 @@ int main() {
 	printf("Content in buffer: \n");
 	int z=0;
 	for (z=0;z<amountOfBytes;z++) printf("%c\n",buffer[z]);
+
+	amountOfBytes = read2(arqHandle,buffer,3);
+	printf("Reading again.. File read: ");
+	puts((files_opened[arqHandle].record).name);
+	printf("Content in buffer: \n");
+	z=0;
+	for (z=0;z<amountOfBytes;z++) printf("%c\n",buffer[z]);
+
+	amountOfBytes = read2(arqHandle,buffer,3);
+	printf("Reading again.. File read: ");
+	puts((files_opened[arqHandle].record).name);
+	printf("Content in buffer: \n");
+	z=0;
+	for (z=0;z<amountOfBytes;z++) printf("%c\n",buffer[z]);
+
+	amountOfBytes = read2(arqHandle,buffer,3);
+	printf("Reading again.. File read: ");
+	puts((files_opened[arqHandle].record).name);
+	printf("Content in buffer: \n");
+	z=0;
+	for (z=0;z<amountOfBytes;z++) printf("%c\n",buffer[z]);
 	return 0;
 }
