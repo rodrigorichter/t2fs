@@ -7,6 +7,7 @@
 
 
 int main() {
+	printf("Trying to open file named /arq\n");
 	int h = open2("/arq");
 	if (h == 0) {
 		printf("File opened:\nRecord typeval: %i\nSectorNr: %i\nPosition in sector: %i\nFile handle: %i\nRecord name: ",(files_opened[h].record).TypeVal,files_opened[h].sectorNr,files_opened[h].positionInSector,h);
@@ -19,6 +20,7 @@ int main() {
 	delete2("/arq");
 	printf("File deleted\n");
 
+	printf("Trying to open file named /arq\n");
 	h = open2("/arq");
 	if (h == 0) {
 		printf("File opened:\nRecord typeval: %i\nSectorNr: %i\nPosition in sector: %i\nFile handle: %i\nRecord name: ",(files_opened[h].record).TypeVal,files_opened[h].sectorNr,files_opened[h].positionInSector,h);

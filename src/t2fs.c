@@ -30,6 +30,7 @@ FILE2 create2 (char *filename) {
 		if (filename[*idx] == '/') (*idx)++;
 
 		while (filename[j] != '\0' && filename[*idx] != '/') {
+			if (!(filename[*idx] == '.' || filename[*idx] == '\0' || (filename[*idx] >= '0' && filename[*idx] <= '9') || (filename[*idx] >= 'a' && filename[*idx] <= 'z') || (filename[*idx] >= 'A' && filename[*idx] <= 'Z'))) return -1;
 			curfile[j] = filename[*idx];
 			(*idx)++;
 			j++;
@@ -63,6 +64,7 @@ FILE2 create2 (char *filename) {
 	int filenameIdx = 0;
 	char *nextFileName;
 	nextFileName = getNextName(filename, &filenameIdx);
+	if (nextFileName == -1) return -1;
 
 	memcpy(currentinode,inodeRoot,sizeof(struct t2fs_inode));
 	if (currentinode[0] != INVALID_PTR) { // first direct pointer from inode is ok
@@ -87,6 +89,7 @@ FILE2 create2 (char *filename) {
 						memcpy(currentinode,sector+sectorOffset*sizeof(struct t2fs_inode),sizeof(struct t2fs_inode));
 
 						nextFileName = getNextName(filename, &filenameIdx);
+						if (nextFileName == -1) return -1;
 						i=0;j=0;
 					}
 					else return -1;
@@ -170,6 +173,7 @@ int delete2 (char *filename) {
 		if (filename[*idx] == '/') (*idx)++;
 
 		while (filename[j] != '\0' && filename[*idx] != '/') {
+			if (!(filename[*idx] == '.' || filename[*idx] == '\0' || (filename[*idx] >= '0' && filename[*idx] <= '9') || (filename[*idx] >= 'a' && filename[*idx] <= 'z') || (filename[*idx] >= 'A' && filename[*idx] <= 'Z'))) return -1;
 			curfile[j] = filename[*idx];
 			(*idx)++;
 			j++;
@@ -177,7 +181,6 @@ int delete2 (char *filename) {
 		}
 		return curfile;
 	}
-
 	// read superblock
 	unsigned char sector[SECTOR_SIZE];
 	read_sector(0,sector);
@@ -203,6 +206,7 @@ int delete2 (char *filename) {
 	int filenameIdx = 0;
 	char *nextFileName;
 	nextFileName = getNextName(filename, &filenameIdx);
+	if (nextFileName == -1) return -1;
 	memcpy(currentinode,inodeRoot,sizeof(struct t2fs_inode));
 	if (currentinode[0] != INVALID_PTR) { // first direct pointer from inode is ok
 		int i=0;
@@ -255,6 +259,7 @@ FILE2 open2 (char *filename) {
 		if (filename[*idx] == '/') (*idx)++;
 
 		while (filename[j] != '\0' && filename[*idx] != '/') {
+			if (!(filename[*idx] == '.' || filename[*idx] == '\0' || (filename[*idx] >= '0' && filename[*idx] <= '9') || (filename[*idx] >= 'a' && filename[*idx] <= 'z') || (filename[*idx] >= 'A' && filename[*idx] <= 'Z'))) return -1;
 			curfile[j] = filename[*idx];
 			(*idx)++;
 			j++;
@@ -262,7 +267,6 @@ FILE2 open2 (char *filename) {
 		}
 		return curfile;
 	}
-
 	// read superblock
 	unsigned char sector[SECTOR_SIZE];
 	read_sector(0,sector);
@@ -288,6 +292,7 @@ FILE2 open2 (char *filename) {
 	int filenameIdx = 0;
 	char *nextFileName;
 	nextFileName = getNextName(filename, &filenameIdx);
+	if (nextFileName == -1) return -1;
 	memcpy(currentinode,inodeRoot,sizeof(struct t2fs_inode));
 	if (currentinode[0] != INVALID_PTR) { // first direct pointer from inode is ok
 		int i=0;
@@ -450,14 +455,14 @@ int seek2 (FILE2 handle, unsigned int offset) {
 	return 0;
 }
 
-int mkdir2 (char *pathname) {
-	char * getNextName(char *pathname, int *idx) {
+int mkdir2 (char *filename) {
+	char * getNextName(char *filename, int *idx) {
 		char *curfile = malloc(32);
 		int j=0;
-		if (pathname[*idx] == '/') (*idx)++;
+		if (filename[*idx] == '/') (*idx)++;
 
-		while (pathname[j] != '\0' && pathname[*idx] != '/') {
-			curfile[j] = pathname[*idx];
+		while (filename[j] != '\0' && filename[*idx] != '/') {
+			curfile[j] = filename[*idx];
 			(*idx)++;
 			j++;
 			curfile[j] = '\0';
@@ -487,9 +492,10 @@ int mkdir2 (char *pathname) {
 	memcpy(inodeRoot,sector,sizeof(struct t2fs_inode));
 	//printf("dataptr1: %i\n dataptr2: %i\n singleindr: %i\n doubleindir: %i",inodeRoot[0],inodeRoot[1],inodeRoot[2],inodeRoot[3]);
 	// search root directory for next file
-	int pathnameIdx = 0;
+	int filenameIdx = 0;
 	char *nextFileName;
-	nextFileName = getNextName(pathname, &pathnameIdx);
+	nextFileName = getNextName(filename, &filenameIdx);
+	if (nextFileName == -1) return -1;
 
 	memcpy(currentinode,inodeRoot,sizeof(struct t2fs_inode));
 	if (currentinode[0] != INVALID_PTR) { // first direct pointer from inode is ok
@@ -508,7 +514,7 @@ int mkdir2 (char *pathname) {
 				for (z=0;z<32;z++) printf("%c",possibleNextFileName[z]);
 				if (strcmp(possibleNextFileName,nextFileName) == 0) { // found file
 					if (record[0] == 2) { // it is a directory
-						if (pathname[pathnameIdx] == '\0') return -1; // directory already exists
+						if (filename[filenameIdx] == '\0') return -1; // directory already exists
 
 						// enter the directory and continue search
 						inodeNr = record[40] + (record[41]<<8) + (record[42]<<16) + (record[43]<<24);
@@ -516,7 +522,8 @@ int mkdir2 (char *pathname) {
 						int sectorOffset = ((float)inodeNr/(SECTOR_SIZE/sizeof(struct t2fs_inode))-(int)(float)inodeNr/(SECTOR_SIZE/sizeof(struct t2fs_inode)))*sizeof(struct t2fs_inode);
 						memcpy(currentinode,sector+sectorOffset*sizeof(struct t2fs_inode),sizeof(struct t2fs_inode));
 
-						nextFileName = getNextName(pathname, &pathnameIdx);
+						nextFileName = getNextName(filename, &filenameIdx);
+	if (nextFileName == -1) return -1;
 						i=0;j=0;
 					}
 				}
@@ -580,13 +587,97 @@ int mkdir2 (char *pathname) {
 	return -1;
 }
 
-int rmdir2 (char *pathname) {
+int rmdir2 (char *filename) {
 	char * getNextName(char *filename, int *idx) {
 		char *curfile = malloc(32);
 		int j=0;
 		if (filename[*idx] == '/') (*idx)++;
 
 		while (filename[j] != '\0' && filename[*idx] != '/') {
+			if (!(filename[*idx] == '.' || filename[*idx] == '\0' || (filename[*idx] >= '0' && filename[*idx] <= '9') || (filename[*idx] >= 'a' && filename[*idx] <= 'z') || (filename[*idx] >= 'A' && filename[*idx] <= 'Z'))) return -1;
+			curfile[j] = filename[*idx];
+			(*idx)++;
+			j++;
+			curfile[j] = '\0';
+		}
+		return curfile;
+	}
+	// read superblock
+	unsigned char sector[SECTOR_SIZE];
+	read_sector(0,sector);
+	
+	int superblockSize =  sector[6] + (sector[7]<<8);
+	int bitmapBlocksSize =  sector[8] + (sector[9]<<8);
+	int bitmapInodesSize =  sector[10] + (sector[11]<<8);
+	int inodesSize = sector[12] + (sector[13]<<8);
+
+	int inodesOffset = superblockSize+bitmapBlocksSize+bitmapInodesSize;
+	int blocksOffset = superblockSize+bitmapBlocksSize+bitmapInodesSize+inodesSize;
+
+	int blockSize = sector[14] + (sector[15]<<8);
+
+	int currentinode[4];
+	int inodeNr = 0;
+	// read root inode
+	read_sector(inodesOffset,sector);
+	int inodeRoot[4];
+	memcpy(inodeRoot,sector,sizeof(struct t2fs_inode));
+	//printf("dataptr1: %i\n dataptr2: %i\n singleindr: %i\n doubleindir: %i",inodeRoot[0],inodeRoot[1],inodeRoot[2],inodeRoot[3]);
+	// search root directory for next file
+	int filenameIdx = 0;
+	char *nextFileName;
+	nextFileName = getNextName(filename, &filenameIdx);
+	if (nextFileName == -1) return -1;
+	memcpy(currentinode,inodeRoot,sizeof(struct t2fs_inode));
+	if (currentinode[0] != INVALID_PTR) { // first direct pointer from inode is ok
+		int i=0;
+		for (i=0;i<blockSize;i++) { // iterate through sectors in the block
+			read_sector(blocksOffset+currentinode[0]*blockSize+i,sector);
+			int j=0;
+			BYTE record[64];
+			for (j=0;j<4;j++) { // iterate through records in sector
+				memcpy(record,sector+j*64,64);
+				char possibleNextFileName[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+				int z=0;
+				memcpy(possibleNextFileName,record+1,32);
+				//for (z=0;z<32;z++) printf("%c",possibleNextFileName[z]);
+				if (strcmp(possibleNextFileName,nextFileName) == 0) { // found file
+					if (record[0] == 2 && filename[filenameIdx] == '\0') { // it is a directory and is the one we want
+						// set record as invalid
+						record[0] = 0;
+						memcpy(sector+j*64,record,64);
+						write_sector(blocksOffset+currentinode[0]*blockSize+i,sector);
+
+						// set its block and inode as free
+						int dirinode[4];
+						unsigned char buffer[SECTOR_SIZE];
+						inodeNr = record[40] + (record[41]<<8) + (record[42]<<16) + (record[43]<<24);
+						read_sector(inodesOffset+(int)((float)inodeNr/(SECTOR_SIZE/sizeof(struct t2fs_inode))),buffer);
+						int sectorOffset = ((float)inodeNr/(SECTOR_SIZE/sizeof(struct t2fs_inode))-(int)(float)inodeNr/(SECTOR_SIZE/sizeof(struct t2fs_inode)))*sizeof(struct t2fs_inode);
+						memcpy(dirinode,buffer+sectorOffset*sizeof(struct t2fs_inode),sizeof(struct t2fs_inode));
+
+						// set bitmaps as free
+						setBitmap2(BITMAP_DADOS,dirinode[0],0);
+						setBitmap2(BITMAP_INODE,inodeNr,0);
+
+						
+						return 0;
+					}
+				}
+			}
+		}
+	}
+	return -1;
+}
+
+DIR2 opendir2 (char *filename) {
+	char * getNextName(char *filename, int *idx) {
+		char *curfile = malloc(32);
+		int j=0;
+		if (filename[*idx] == '/') (*idx)++;
+
+		while (filename[j] != '\0' && filename[*idx] != '/') {
+			if (!(filename[*idx] == '.' || filename[*idx] == '\0' || (filename[*idx] >= '0' && filename[*idx] <= '9') || (filename[*idx] >= 'a' && filename[*idx] <= 'z') || (filename[*idx] >= 'A' && filename[*idx] <= 'Z'))) return -1;
 			curfile[j] = filename[*idx];
 			(*idx)++;
 			j++;
@@ -617,91 +708,10 @@ int rmdir2 (char *pathname) {
 	memcpy(inodeRoot,sector,sizeof(struct t2fs_inode));
 	//printf("dataptr1: %i\n dataptr2: %i\n singleindr: %i\n doubleindir: %i",inodeRoot[0],inodeRoot[1],inodeRoot[2],inodeRoot[3]);
 	// search root directory for next file
-	int pathnameIdx = 0;
+	int filenameIdx = 0;
 	char *nextFileName;
-	nextFileName = getNextName(pathname, &pathnameIdx);
-	memcpy(currentinode,inodeRoot,sizeof(struct t2fs_inode));
-	if (currentinode[0] != INVALID_PTR) { // first direct pointer from inode is ok
-		int i=0;
-		for (i=0;i<blockSize;i++) { // iterate through sectors in the block
-			read_sector(blocksOffset+currentinode[0]*blockSize+i,sector);
-			int j=0;
-			BYTE record[64];
-			for (j=0;j<4;j++) { // iterate through records in sector
-				memcpy(record,sector+j*64,64);
-				char possibleNextFileName[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
-				int z=0;
-				memcpy(possibleNextFileName,record+1,32);
-				//for (z=0;z<32;z++) printf("%c",possibleNextFileName[z]);
-				if (strcmp(possibleNextFileName,nextFileName) == 0) { // found file
-					if (record[0] == 2 && pathname[pathnameIdx] == '\0') { // it is a directory and is the one we want
-						// set record as invalid
-						record[0] = 0;
-						memcpy(sector+j*64,record,64);
-						write_sector(blocksOffset+currentinode[0]*blockSize+i,sector);
-
-						// set its block and inode as free
-						int dirinode[4];
-						unsigned char buffer[SECTOR_SIZE];
-						inodeNr = record[40] + (record[41]<<8) + (record[42]<<16) + (record[43]<<24);
-						read_sector(inodesOffset+(int)((float)inodeNr/(SECTOR_SIZE/sizeof(struct t2fs_inode))),buffer);
-						int sectorOffset = ((float)inodeNr/(SECTOR_SIZE/sizeof(struct t2fs_inode))-(int)(float)inodeNr/(SECTOR_SIZE/sizeof(struct t2fs_inode)))*sizeof(struct t2fs_inode);
-						memcpy(dirinode,buffer+sectorOffset*sizeof(struct t2fs_inode),sizeof(struct t2fs_inode));
-
-						// set bitmaps as free
-						setBitmap2(BITMAP_DADOS,dirinode[0],0);
-						setBitmap2(BITMAP_INODE,inodeNr,0);
-
-						
-						return 0;
-					}
-				}
-			}
-		}
-	}
-	return -1;
-}
-
-DIR2 opendir2 (char *pathname) {
-	char * getNextName(char *pathname, int *idx) {
-		char *curfile = malloc(32);
-		int j=0;
-		if (pathname[*idx] == '/') (*idx)++;
-
-		while (pathname[j] != '\0' && pathname[*idx] != '/') {
-			curfile[j] = pathname[*idx];
-			(*idx)++;
-			j++;
-			curfile[j] = '\0';
-		}
-		return curfile;
-	}
-
-	// read superblock
-	unsigned char sector[SECTOR_SIZE];
-	read_sector(0,sector);
-	
-	int superblockSize =  sector[6] + (sector[7]<<8);
-	int bitmapBlocksSize =  sector[8] + (sector[9]<<8);
-	int bitmapInodesSize =  sector[10] + (sector[11]<<8);
-	int inodesSize = sector[12] + (sector[13]<<8);
-
-	int inodesOffset = superblockSize+bitmapBlocksSize+bitmapInodesSize;
-	int blocksOffset = superblockSize+bitmapBlocksSize+bitmapInodesSize+inodesSize;
-
-	int blockSize = sector[14] + (sector[15]<<8);
-
-	int currentinode[4];
-	int inodeNr = 0;
-	// read root inode
-	read_sector(inodesOffset,sector);
-	int inodeRoot[4];
-	memcpy(inodeRoot,sector,sizeof(struct t2fs_inode));
-	//printf("dataptr1: %i\n dataptr2: %i\n singleindr: %i\n doubleindir: %i",inodeRoot[0],inodeRoot[1],inodeRoot[2],inodeRoot[3]);
-	// search root directory for next file
-	int pathnameIdx = 0;
-	char *nextFileName;
-	nextFileName = getNextName(pathname, &pathnameIdx);
+	nextFileName = getNextName(filename, &filenameIdx);
+	if (nextFileName == -1) return -1;
 	memcpy(currentinode,inodeRoot,sizeof(struct t2fs_inode));
 	if (currentinode[0] != INVALID_PTR) { // first direct pointer from inode is ok
 		int i=0;
@@ -719,7 +729,7 @@ DIR2 opendir2 (char *pathname) {
 				//for (z=0;z<32;z++) printf("%c",possibleNextFileName[z]);
 				if (strcmp(possibleNextFileName,nextFileName) == 0) { // found file
 					if (record[0] == 2) { // it is a directory
-						if (pathname[pathnameIdx] == '\0') { // it is the one we want
+						if (filename[filenameIdx] == '\0') { // it is the one we want
 							// set as an opened directory
 							int l=0;
 							while (dirs_opened[l].is_valid) l++;

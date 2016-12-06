@@ -7,12 +7,23 @@
 
 
 int main() {
-	int a = create2("/pasta2");
+	printf("Trying to create directory named /pasta25\n");
+	int a = create2("/pasta25");
 	if (a==-1) {
-		printf("Ocorreu um erro ao criar o diretorio\n");
+		printf("Could not create directory\n");
 		return 0;
 	}
 	printf("Directory created:\nRecord typeval: %i\nSectorNr: %i\nPosition in sector: %i\nFile handle: %i\nRecord name: ",(files_opened[a].record).TypeVal,files_opened[a].sectorNr,files_opened[a].positionInSector,a);
 	puts((files_opened[a].record).name);
+
+	printf("Trying to create directory named /pasta@$\n");
+	a = create2("/pasta@$");
+	if (a==-1) {
+		printf("Could not create directory\n");
+		return 0;
+	}
+	printf("Directory created:\nRecord typeval: %i\nSectorNr: %i\nPosition in sector: %i\nFile handle: %i\nRecord name: ",(files_opened[a].record).TypeVal,files_opened[a].sectorNr,files_opened[a].positionInSector,a);
+	puts((files_opened[a].record).name);
+
 	return 0;
 }
