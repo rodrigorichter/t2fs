@@ -14,9 +14,15 @@ INC_DIR=./include
 BIN_DIR=./bin
 SRC_DIR=./src
 
-all:
+all: libt2fs.a *.o
+
+libt2fs.a: *.o $(LIB_DIR)/apidisk.o $(LIB_DIR)/bitmap2.o
+	ar crs $(LIB_DIR)/libt2fs.a $(LIB_DIR)/*.o
+
+*.o: $(SRC_DIR)/t2fs.c $(INC_DIR)/apidisk.h $(INC_DIR)/bitmap2.h $(INC_DIR)/t2fs.h
+	$(CC) -c $(SRC_DIR)/t2fs.c -Wall -lm; mv *.o $(LIB_DIR)/
 
 clean:
-	rm -rf $(LIB_DIR)/*.a $(BIN_DIR)/*.o $(SRC_DIR)/*~ $(INC_DIR)/*~ *~
+	rm $(LIB_DIR)/t2fs.o $(LIB_DIR)/libt2fs.a
 
 

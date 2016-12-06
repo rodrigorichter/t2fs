@@ -532,7 +532,6 @@ DIR2 opendir2 (char *pathname) {
 	int pathnameIdx = 0;
 	char *nextFileName;
 	nextFileName = getNextName(pathname, &pathnameIdx);
-
 	memcpy(currentinode,inodeRoot,sizeof(struct t2fs_inode));
 	if (currentinode[0] != INVALID_PTR) { // first direct pointer from inode is ok
 		int i=0;
@@ -574,7 +573,42 @@ DIR2 opendir2 (char *pathname) {
 }
 
 int readdir2 (DIR2 handle, DIRENT2 *dentry) {
-	return 0;
+	// read superblock
+	unsigned char sector[SECTOR_SIZE];
+	read_sector(0,sector);
+	int superblockSize =  sector[6] + (sector[7]<<8);
+	int bitmapBlocksSize =  sector[8] + (sector[9]<<8);
+	int bitmapInodesSize =  sector[10] + (sector[11]<<8);
+	int inodesSize = sector[12] + (sector[13]<<8);
+
+	int inodesOffset = superblockSize+bitmapBlocksSize+bitmapInodesSize;
+	int blocksOffset = superblockSize+bitmapBlocksSize+bitmapInodesSize+inodesSize;
+
+	int blockSize = sector[14] + (sector[15]<<8);
+
+	int currentinode[4];
+	int inodeNr = (dirs_opened[handle].record).inodeNumber;
+
+	// find inode of the opened directory
+	read_sector(inodesOffset+(int)((float)inodeNr/(SECTOR_SIZE/sizeof(struct t2fs_inode))),sector);
+	
+	int sectorOffset=(int)((float)((dirs_opened[handle].current_entry)*64)/SECTOR_SIZE);
+
+	printf("entry: %i",((dirs_opened[handle].current_entry)*64));
+	//printf("sectorOffset:%i",sectorOffset);
+	memcpy(currentinode,sector+sectorOffset*sizeof(struct t2fs_inode),sizeof(struct t2fs_inode));
+	if (currentinode[0] != INVALID_PTR) {
+		read_sector(blocksOffset+currentinode[0]*blockSize+sectorOffset,sector);
+		int j=(((float)((dirs_opened[handle].current_entry)*64)/SECTOR_SIZE)-(int)((float)((dirs_opened[handle].current_entry)*64)/SECTOR_SIZE))*SECTOR_SIZE;
+		BYTE record[64];
+		memcpy(record,sector+j,64);
+		memcpy(dentry->name,record+1,32);
+		dentry->fileType = record[0];
+		dentry->fileSize = record[37]+(record[38]>>8)+(record[39]>>16)+(record[40]>>24);
+		(dirs_opened[handle].current_entry)++;
+		return 0;
+	}
+	return -1;
 }
 
 int closedir2 (DIR2 handle) {
