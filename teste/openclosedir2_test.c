@@ -8,6 +8,7 @@
 
 int main() {
 	printf("Trying to open directory named /sub\n");
+	
 	int a = opendir2("/sub");
 	if (a != -1) {
 		printf("Directory opened:\nRecord typeval: %i\nSectorNr: %i\nPosition in sector: %i\nFile handle: %i\nRecord name: ",(dirs_opened[a].record).TypeVal,dirs_opened[a].sectorNr,dirs_opened[a].positionInSector,a);
